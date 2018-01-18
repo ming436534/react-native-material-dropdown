@@ -229,7 +229,8 @@ export default class Dropdown extends PureComponent {
             if (dropdownPosition < 0) {
               offset = this.itemSize() * (selected - visibleItemCount - dropdownPosition);
             } else {
-              offset = this.itemSize() * (selected - dropdownPosition);
+              let offIdx = Math.min(Math.max(selected - dropdownPosition - 2, 0), this.props.data.length - visibleItemCount);
+              offset = this.itemSize() * offIdx;
             }
           }
         }
