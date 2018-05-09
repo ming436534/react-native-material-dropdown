@@ -174,126 +174,132 @@ export default class Dropdown extends PureComponent {
     if (disabled) {
       return;
     }
+    const onPressExecute = () => {
+      let itemCount = data.length;
+      let visibleItemCount = this.visibleItemCount();
+      let tailItemCount = this.tailItemCount();
+      let timestamp = Date.now();
+      if (null != event) {
+        /* Adjust event location */
+        event.nativeEvent.locationY -= this.rippleInsets().top;
 
-    let itemCount = data.length;
-    let visibleItemCount = this.visibleItemCount();
-    let tailItemCount = this.tailItemCount();
-    let timestamp = Date.now();
+        /* Start ripple directly from event */
+        this.ripple.startRipple(event);
+      }
 
-    if (null != event) {
-      /* Adjust event location */
-      event.nativeEvent.locationY -= this.rippleInsets().top;
+      if (!itemCount) {
+        return;
+      }
 
-      /* Start ripple directly from event */
-      this.ripple.startRipple(event);
-    }
+      this.focused = true;
 
-    if (!itemCount) {
-      return;
-    }
+      if ('function' === typeof onFocus) {
+        onFocus();
+      }
 
-    this.focused = true;
+      let dimensions = Dimensions.get('window');
 
-    if ('function' === typeof onFocus) {
-      onFocus();
-    }
+      this.container.measureInWindow((x, y, containerWidth, containerHeight) => {
+        let { opacity } = this.state;
 
-    let dimensions = Dimensions.get('window');
+        let delay = Math.max(0, animationDuration - (Date.now() - timestamp));
+        let selected = this.selectedIndex();
+        let offset = 0;
 
-    this.container.measureInWindow((x, y, containerWidth, containerHeight) => {
-      let { opacity } = this.state;
+        if (itemCount > visibleItemCount) {
+          if (null == dropdownPosition) {
+            switch (selected) {
+              case -1:
+                break;
 
-      let delay = Math.max(0, animationDuration - (Date.now() - timestamp));
-      let selected = this.selectedIndex();
-      let offset = 0;
+              case 0:
+              case 1:
+                break;
 
-      if (itemCount > visibleItemCount) {
-        if (null == dropdownPosition) {
-          switch (selected) {
-            case -1:
-              break;
-
-            case 0:
-            case 1:
-              break;
-
-            default:
-              if (selected >= itemCount - tailItemCount) {
-                offset = this.itemSize() * (itemCount - visibleItemCount);
+              default:
+                if (selected >= itemCount - tailItemCount) {
+                  offset = this.itemSize() * (itemCount - visibleItemCount);
+                } else {
+                  offset = this.itemSize() * (selected - 1);
+                }
+            }
+          } else {
+            if (~selected) {
+              if (dropdownPosition < 0) {
+                offset = this.itemSize() * (selected - visibleItemCount - dropdownPosition);
               } else {
-                offset = this.itemSize() * (selected - 1);
+                let offIdx = Math.min(Math.max(selected - dropdownPosition - 2, 0), this.props.data.length - visibleItemCount);
+                offset = this.itemSize() * offIdx;
               }
-          }
-        } else {
-          if (~selected) {
-            if (dropdownPosition < 0) {
-              offset = this.itemSize() * (selected - visibleItemCount - dropdownPosition);
-            } else {
-              let offIdx = Math.min(Math.max(selected - dropdownPosition - 2, 0), this.props.data.length - visibleItemCount);
-              offset = this.itemSize() * offIdx;
             }
           }
         }
-      }
 
-      let left = x - maxMargin;
-      let leftInset;
+        let left = x - maxMargin;
+        let leftInset;
 
-      if (left > minMargin) {
-        leftInset = maxMargin;
-      } else {
-        left = minMargin;
-        leftInset = minMargin;
-      }
-
-      let right = x + containerWidth + maxMargin;
-      let rightInset;
-
-      if (dimensions.width - right > minMargin) {
-        rightInset = maxMargin;
-      } else {
-        right = dimensions.width - minMargin;
-        rightInset = minMargin;
-      }
-
-      let top = y
-        + Platform.select({ ios: 1, android: 2 })
-        + labelHeight
-        - itemPadding;
-
-      this.setState({
-        modal: true,
-        width: right - left,
-        top,
-        left,
-        leftInset,
-        rightInset,
-        selected,
-      });
-
-      setTimeout((() => {
-        if (this.mounted) {
-          if (this.scroll) {
-            this.scroll.scrollTo({ x: 0, y: offset, animated: false });
-          }
-
-          Animated
-            .timing(opacity, {
-              duration: animationDuration,
-              toValue: 1,
-            })
-            .start(() => {
-              if (this.mounted && 'ios' === Platform.OS) {
-                let { flashScrollIndicators } = this.scroll || {};
-
-                if ('function' === typeof flashScrollIndicators) {
-                  flashScrollIndicators.call(this.scroll);
-                }
-              }
-            });
+        if (left > minMargin) {
+          leftInset = maxMargin;
+        } else {
+          left = minMargin;
+          leftInset = minMargin;
         }
-      }), delay);
-    });
+
+        let right = x + containerWidth + maxMargin;
+        let rightInset;
+
+        if (dimensions.width - right > minMargin) {
+          rightInset = maxMargin;
+        } else {
+          right = dimensions.width - minMargin;
+          rightInset = minMargin;
+        }
+
+        let top = y
+          + Platform.select({ ios: 1, android: 2 })
+          + labelHeight
+          - itemPadding;
+
+        this.setState({
+          modal: true,
+          width: right - left,
+          top,
+          left,
+          leftInset,
+          rightInset,
+          selected,
+        });
+
+        setTimeout((() => {
+          if (this.mounted) {
+            if (this.scroll) {
+              this.scroll.scrollTo({ x: 0, y: offset, animated: false });
+            }
+
+            Animated
+              .timing(opacity, {
+                duration: animationDuration,
+                toValue: 1,
+              })
+              .start(() => {
+                if (this.mounted && 'ios' === Platform.OS) {
+                  let { flashScrollIndicators } = this.scroll || {};
+
+                  if ('function' === typeof flashScrollIndicators) {
+                    flashScrollIndicators.call(this.scroll);
+                  }
+                }
+              });
+          }
+        }), delay);
+      });
+    }
+
+    if (this.props.isKeyboardOpened) {
+      Keyboard.dismiss();
+    } else {
+      onPressExecute();
+    }
   }
 
   onClose() {
@@ -602,6 +608,8 @@ export default class Dropdown extends PureComponent {
                 style={[styles.picker, pickerStyle, pickerStyleOverrides]}
               >
                 <ScrollView
+                  keyboardShouldPersistTaps="always"
+                  keyboardDismissMode="none"
                   ref={this.updateScrollRef}
                   style={styles.scroll}
                   scrollEnabled={visibleItemCount < itemCount}
