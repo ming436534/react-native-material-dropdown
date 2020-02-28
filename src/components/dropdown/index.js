@@ -112,6 +112,8 @@ export default class Dropdown extends PureComponent {
 
     renderBase: PropTypes.func,
     renderAccessory: PropTypes.func,
+    renderItemChild: PropTypes.func,
+    renderInnerBase: PropTypes.func,
 
     containerStyle: (ViewPropTypes || View.propTypes).style,
     pickerStyle: (ViewPropTypes || View.propTypes).style,
@@ -448,6 +450,7 @@ export default class Dropdown extends PureComponent {
       animationDuration,
       rippleOpacity,
       shadeOpacity,
+      renderItemChild,
     } = this.props;
 
     let props = {
@@ -463,7 +466,6 @@ export default class Dropdown extends PureComponent {
         paddingRight: rightInset,
       },
     };
-
     return data
       .map(({ value, label = value }, index) => {
         let color = ~selected?
@@ -476,9 +478,15 @@ export default class Dropdown extends PureComponent {
 
         return (
           <DropdownItem index={index} key={index} {...props}>
-            <Text style={[itemTextStyle, style]} numberOfLines={1}>
-              {label}
-            </Text>
+            {
+              (typeof renderItemChild === 'function') ? (
+                renderItemChild(props, index)
+              ) : (
+                <Text style={[itemTextStyle, style]} numberOfLines={1}>
+                  {label}
+                </Text>
+              )
+            }
           </DropdownItem>
         );
       });
